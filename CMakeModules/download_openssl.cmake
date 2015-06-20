@@ -54,7 +54,7 @@ ExternalProject_Add(
     openssl
     DOWNLOAD_DIR ${DOWNLOAD_DIR}
     PREFIX ${PREFIX}
-    TIMEOUT 60
+    TIMEOUT   3600
     URL http://launchpad.net/openssl-cmake/1.0.1e/1.0.1e-1/+download/openssl-cmake-1.0.1e-src.tar.gz
     URL_MD5 ${OPENSSL_MD5}
 
