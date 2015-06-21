@@ -1,8 +1,8 @@
 # When using the KiCad repository via Git, this .gitconfig
-# configures Git to use the .bzrignore so there is not need for
+# configures Git to use the .bzrignore so there is no need for
 # a separate .gitignore file.
 # 
-# However, this .gitconfig file needs to be enable explicitly in your 
+# However, this .gitconfig file needs to be enabled explicitly in your 
 # git configuration. For example in the local .git/config file
 # add the following lines:
 # 
