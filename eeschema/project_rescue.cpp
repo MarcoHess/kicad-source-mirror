@@ -243,7 +243,7 @@ public:
         {
             wxString part_name( each_component->GetPartName() );
 
-            LIB_PART* case_sensitive_match = find_component( part_name, aRescuer.GetLibs(), /* aCached */ true );
+            LIB_ALIAS* case_sensitive_match = aRescuer.GetLibs()->FindLibraryEntry( part_name );
             std::vector<LIB_ALIAS*> case_insensitive_matches;
             aRescuer.GetLibs()->FindLibraryNearEntries( case_insensitive_matches, part_name );
 
@@ -367,7 +367,8 @@ public:
           m_cache_candidate( aCacheCandidate ),
           m_lib_candidate( aLibCandidate ) { }
 
-    RESCUE_CACHE_CANDIDATE() {}
+    RESCUE_CACHE_CANDIDATE()
+        : m_cache_candidate( NULL ), m_lib_candidate( NULL ) {}
 
     virtual wxString GetRequestedName() const { return m_requested_name; }
     virtual wxString GetNewName() const { return m_new_name; }
