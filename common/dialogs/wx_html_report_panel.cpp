@@ -35,6 +35,7 @@ WX_HTML_REPORT_PANEL::WX_HTML_REPORT_PANEL( wxWindow*      parent,
     m_showAll( true )
 {
     syncCheckboxes();
+    m_htmlView->SetPage( addHeader( "" ) );
 }
 
 
@@ -79,8 +80,21 @@ void WX_HTML_REPORT_PANEL::refreshView()
         html += generateHtml( l );
     }
 
-    m_htmlView->SetPage( html );
+    m_htmlView->SetPage( addHeader( html ) );
     scrollToBottom();
+}
+
+
+wxString WX_HTML_REPORT_PANEL::addHeader( const wxString& aBody )
+{
+    wxColour bgcolor = wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOW );
+    wxColour fgcolor = wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOWTEXT );
+    wxString s = "<html><body bgcolor=\"" + bgcolor.GetAsString( wxC2S_HTML_SYNTAX ) +
+                 "\" text=\"" + fgcolor.GetAsString( wxC2S_HTML_SYNTAX ) + "\">";
+    s += aBody;
+    s += "</body></html>";
+
+    return s;
 }
 
 

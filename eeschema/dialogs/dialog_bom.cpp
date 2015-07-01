@@ -388,6 +388,8 @@ void DIALOG_BOM::OnRunPlugin( wxCommandEvent& event )
     fn.ClearExt();
     wxString fullfilename = fn.GetFullPath();
     m_parent->ClearMsgPanel();
+    
+    m_Messages->SetValue( "" );
 
     wxString reportmsg;
     WX_STRING_REPORTER reporter( &reportmsg );
@@ -557,6 +559,14 @@ wxString DIALOG_BOM::getPluginFileName(  const wxString& aCommand )
             }
         }
     }
+
+    // Using a format like %P is possible in  plugin name, so expand it
+    wxString prj_dir = Prj().GetProjectPath();
+
+    if( prj_dir.EndsWith( '/' ) || prj_dir.EndsWith( '\\' ) )
+        prj_dir.RemoveLast();
+
+    pluginName.Replace( wxT( "%P" ), prj_dir.GetData(), true );
 
     return pluginName;
 }

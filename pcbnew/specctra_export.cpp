@@ -866,7 +866,7 @@ PADSTACK* SPECCTRA_DB::makeVia( const ::VIA* aVia )
     int botLayer = kicadLayer2pcb[botLayerNum];
 
     if( topLayer > botLayer )
-        EXCHG( topLayer, botLayer );
+        std::swap( topLayer, botLayer );
 
     return makeVia( aVia->GetWidth(), aVia->GetDrillValue(), topLayer, botLayer );
 }
@@ -1051,9 +1051,9 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
         }
         else
         {
-            // Polygon start point. Arbitrarily chosen end of the 
+            // Polygon start point. Arbitrarily chosen end of the
             // segment and build the poly from here.
-            
+
             wxPoint startPt = wxPoint( graphic->GetEnd() );
             prevPt = graphic->GetEnd();
             path->AppendPoint( mapPt( prevPt ) );
@@ -1072,7 +1072,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                         // Use the line segment end point furthest away from
                         // prevPt as we assume the other end to be ON prevPt or
                         // very close to it.
-                        
+
                         if( close_st( prevPt, graphic->GetStart(), graphic->GetEnd() ) )
                         {
                             nextPt = graphic->GetEnd();
@@ -1106,7 +1106,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                             wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
 
                             angle = -angle;
-                            EXCHG( start, end );
+                            std::swap( start, end );
                         }
 
                         wxPoint nextPt;
@@ -1140,9 +1140,9 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
 
                 graphic = findPoint( prevPt, &items, prox );
 
-                // If there are no more close segments, check if the board 
+                // If there are no more close segments, check if the board
                 // outline polygon can be closed.
-                
+
                 if( !graphic )    
                 {
                     if( close_enough( startPt, prevPt, prox ) )
@@ -1153,15 +1153,15 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                     else
                     {
                         wxString error = wxString::Format(
-                        	_( "Unable to find the next boundary segment with an endpoint of (%s mm, %s mm).\n"
-                           	   "Edit Edge.Cuts perimeter graphics, making them contiguous polygons each." ),
-                        	GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
-                        	GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
+                            _( "Unable to find the next boundary segment with an endpoint of (%s mm, %s mm).\n"
+                                  "Edit Edge.Cuts perimeter graphics, making them contiguous polygons each." ),
+                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.x ).c_str() ) ),
+                            GetChars( FROM_UTF8( BOARD_ITEM::FormatInternalUnits( prevPt.y ).c_str() ) )
                         );
-                    	ThrowIOError( error );
-                	}
+                        ThrowIOError( error );
+                    }
                     break;
-				}
+                }
             }
         }
 
@@ -1188,9 +1188,9 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
             }
             else
             {
-                // Polygon start point. Arbitrarily chosen end of the 
+                // Polygon start point. Arbitrarily chosen end of the
                 // segment and build the poly from here.
-                
+
                 wxPoint startPt( graphic->GetEnd() );
                 prevPt = graphic->GetEnd();
                 poly_ko->AppendPoint( mapPt( prevPt ) );
@@ -1207,7 +1207,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                             // Use the line segment end point furthest away from
                             // prevPt as we assume the other end to be ON prevPt or
                             // very close to it.
-                        
+
                             if( close_st( prevPt, graphic->GetStart(), graphic->GetEnd() ) )
                             {
                                 nextPt = graphic->GetEnd();
@@ -1241,7 +1241,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
                                 wxASSERT( close_enough( prevPt, graphic->GetArcEnd(), prox ) );
 
                                 angle = -angle;
-                                EXCHG( start, end );
+                                std::swap( start, end );
                             }
 
                             wxPoint nextPt;
@@ -1278,7 +1278,7 @@ void SPECCTRA_DB::fillBOUNDARY( BOARD* aBoard, BOUNDARY* boundary )
 
                     // If there are no more close segments, check if polygon
                     // can be closed.
-                    
+
                     if( !graphic )
                     {
                         if( close_enough( startPt, prevPt, prox ) )

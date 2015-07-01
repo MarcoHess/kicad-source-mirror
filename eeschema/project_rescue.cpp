@@ -243,7 +243,7 @@ public:
         {
             wxString part_name( each_component->GetPartName() );
 
-            LIB_PART* case_sensitive_match = find_component( part_name, aRescuer.GetLibs(), /* aCached */ true );
+            LIB_ALIAS* case_sensitive_match = aRescuer.GetLibs()->FindLibraryEntry( part_name );
             std::vector<LIB_ALIAS*> case_insensitive_matches;
             aRescuer.GetLibs()->FindLibraryNearEntries( case_insensitive_matches, part_name );
 
@@ -293,6 +293,7 @@ public:
         {
             if( each_component->GetPartName() != m_requested_name ) continue;
             each_component->SetPartName( m_new_name );
+            each_component->ClearFlags();
             aRescuer->LogRescue( each_component, m_requested_name, m_new_name );
         }
         return true;
@@ -329,7 +330,7 @@ public:
             wxString part_name( each_component->GetPartName() );
 
             LIB_PART* cache_match = find_component( part_name, aRescuer.GetLibs(), /* aCached */ true );
-            LIB_PART* lib_match = find_component( part_name, aRescuer.GetLibs(), /* aCached */ false );
+            LIB_PART* lib_match = aRescuer.GetLibs()->FindLibPart( part_name );
 
             // Test whether there is a conflict
             if( !cache_match || !lib_match )
@@ -366,7 +367,8 @@ public:
           m_cache_candidate( aCacheCandidate ),
           m_lib_candidate( aLibCandidate ) { }
 
-    RESCUE_CACHE_CANDIDATE() {}
+    RESCUE_CACHE_CANDIDATE()
+        : m_cache_candidate( NULL ), m_lib_candidate( NULL ) {}
 
     virtual wxString GetRequestedName() const { return m_requested_name; }
     virtual wxString GetNewName() const { return m_new_name; }
@@ -409,6 +411,7 @@ public:
         {
             if( each_component->GetPartName() != m_requested_name ) continue;
             each_component->SetPartName( m_new_name );
+            each_component->ClearFlags();
             aRescuer->LogRescue( each_component, m_requested_name, m_new_name );
         }
         return true;
@@ -481,6 +484,7 @@ void RESCUER::UndoRescues()
     BOOST_FOREACH( RESCUE_LOG& each_logitem, m_rescue_log )
     {
         each_logitem.component->SetPartName( each_logitem.old_name );
+        each_logitem.component->ClearFlags();
     }
 }
 
@@ -511,6 +515,10 @@ bool SCH_EDIT_FRAME::RescueProject( bool aRunningOnDemand )
     {
         wxMessageDialog dlg( this, _( "No symbols were rescued." ) );
         dlg.ShowModal();
+
+        // Set the modified flag even on Cancel. Many users seem to instinctively want to Save at
+        // this point, due to the reloading of the symbols, so we'll make the save button active.
+        OnModify();
         return true;
     }
 

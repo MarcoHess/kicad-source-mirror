@@ -356,7 +356,7 @@ void BITMAPCONV_INFO::OuputOnePolygon( KPolygon & aPolygon, const char * aBrdLay
 
     case PCBNEW_KICAD_MOD:
     {
-        double width = 0.1;
+        double width = 0.0001;
         fprintf( m_Outfile, "  (fp_poly (pts" );
 
         jj = 0;
