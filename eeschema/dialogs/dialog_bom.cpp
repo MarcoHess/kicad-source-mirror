@@ -388,6 +388,8 @@ void DIALOG_BOM::OnRunPlugin( wxCommandEvent& event )
     fn.ClearExt();
     wxString fullfilename = fn.GetFullPath();
     m_parent->ClearMsgPanel();
+    
+    m_Messages->SetValue( "" );
 
     wxString reportmsg;
     WX_STRING_REPORTER reporter( &reportmsg );
