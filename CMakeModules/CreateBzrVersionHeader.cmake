@@ -78,5 +78,77 @@ macro( create_bzr_version_header )
                         ${CMAKE_BINARY_DIR}/version.h)
 
         message( STATUS "Kicad Bazaar build version: ${KICAD_BUILD_VERSION}")
+
+    else(Kicad_REPO_LAST_CHANGED_DATE)
+
+        # No version information found from BZR.
+
+        message( STATUS "Not a Bazaar repository. Trying Git.")
+
+        # Check to see if this is a Git repository and try to extract version
+        # information from that.
+        find_package( Git )
+
+        if( Git_FOUND )
+
+            # Git is a available. See if the source directorty is a Git repository.
+            execute_process( COMMAND
+                             ${Git_EXECUTABLE} describe --first-parent --always --dirty
+                             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                             ERROR_VARIABLE  _git_repository_error
+                             OUTPUT_VARIABLE _git_INFO
+                             OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+            if( "${_git_repository_error}" STREQUAL "" )
+
+                message( STATUS "Git commit '${_git_INFO}'" )
+
+                execute_process( COMMAND
+                                 ${Git_EXECUTABLE} symbolic-ref HEAD
+                                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                                 OUTPUT_VARIABLE _git_branch
+                                 OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+                string( REGEX MATCH "([^\\\\/]*)$" _git_BRANCH ${_git_branch} )
+
+                message(STATUS "Git branch '${_git_BRANCH}'")
+
+                execute_process( COMMAND
+                                 ${Git_EXECUTABLE} log --pretty=format:%ci -1
+                                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                                 OUTPUT_VARIABLE _git_commit_date
+                                 OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+                # Extract just the date portion to have a more compact string. The commit
+                # info is really all that is needed so the date is just a feel-good item.
+                string( REGEX MATCH "^[0-9\\\\-]*[^\\\\ ]" _git_COMMIT_DATE ${_git_commit_date} )
+
+                message(STATUS "Git commit date '${_git_COMMIT_DATE}'")
+
+                set( KICAD_BUILD_VERSION "(${_git_COMMIT_DATE} GIT ${_git_BRANCH}-${_git_INFO})")
+
+                # Definition to conditionally use date and revision returned from the
+                # Git log command instead of hand coded date and revision in
+                # "include/build_version.h".  If Git is not found then the date
+                # and version information must be manually edited.
+                # Directive means either bzr or git program version and build version
+                # will reflect this.
+                add_definitions( -DHAVE_SVN_VERSION )
+
+                # Generate version.h.
+                configure_file( ${CMAKE_SOURCE_DIR}/CMakeModules/version.h.cmake
+                                ${CMAKE_BINARY_DIR}/version.h)
+
+                message( STATUS "Kicad Git build version: ${KICAD_BUILD_VERSION}")
+
+            else( "${_git_repository_error}" STREQUAL "" )
+
+                message( STATUS "No Git repository found. Using <build_version.h> for version string." )
+
+            endif( "${_git_repository_error}" STREQUAL "" )
+
+        endif(Git_FOUND)
+
     endif(Kicad_REPO_LAST_CHANGED_DATE)
+
 endmacro(create_bzr_version_header)
