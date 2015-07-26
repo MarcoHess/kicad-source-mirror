@@ -494,7 +494,7 @@ void TOOL_MANAGER::dispatchInternal( const TOOL_EVENT& aEvent )
             if( st->waitEvents.Matches( aEvent ) )
             {
                 // By default, only messages are passed further
-                m_passEvent = ( aEvent.m_category == TC_MESSAGE );
+                m_passEvent = ( aEvent.Category() == TC_MESSAGE );
 
                 // got matching event? clear wait list and wake up the coroutine
                 st->wakeupEvent = aEvent;
@@ -563,7 +563,7 @@ bool TOOL_MANAGER::dispatchActivation( const TOOL_EVENT& aEvent )
 {
     if( aEvent.IsActivate() )
     {
-        std::map<std::string, TOOL_STATE*>::iterator tool = m_toolNameIndex.find( *aEvent.m_commandStr );
+        std::map<std::string, TOOL_STATE*>::iterator tool = m_toolNameIndex.find( *aEvent.GetCommandStr() );
 
         if( tool != m_toolNameIndex.end() )
         {
@@ -592,6 +592,8 @@ void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
             st->pendingWait = true;
             st->waitEvents = TOOL_EVENT( TC_ANY, TA_ANY );
 
+            CONTEXT_MENU* m = st->contextMenu;
+
             if( st->contextMenuTrigger == CMENU_NOW )
                 st->contextMenuTrigger = CMENU_OFF;
 
@@ -604,17 +606,19 @@ void TOOL_MANAGER::dispatchContextMenu( const TOOL_EVENT& aEvent )
             // Run update handlers
             st->contextMenu->UpdateAll();
 
-            boost::scoped_ptr<CONTEXT_MENU> menu( new CONTEXT_MENU( *st->contextMenu ) );
+            boost::scoped_ptr<CONTEXT_MENU> menu( new CONTEXT_MENU( *m ) );
             GetEditFrame()->PopupMenu( menu.get() );
 
             // If nothing was chosen from the context menu, we must notify the tool as well
             if( menu->GetSelected() < 0 )
             {
                 TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CHOICE, -1 );
+                evt.SetParameter( m );
                 dispatchInternal( evt );
             }
 
             TOOL_EVENT evt( TC_COMMAND, TA_CONTEXT_MENU_CLOSED );
+            evt.SetParameter( m );
             dispatchInternal( evt );
 
             m_viewControls->ForceCursorPosition( forcedCursor, cursorPos );
@@ -638,6 +642,7 @@ void TOOL_MANAGER::finishTool( TOOL_STATE* aState )
     }
 
     aState->theTool->SetTransitions();
+    m_viewControls->Reset();
 }
 
 

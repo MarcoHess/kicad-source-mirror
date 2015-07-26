@@ -151,17 +151,15 @@ void WX_VIEW_CONTROLS::onWheel( wxMouseEvent& aEvent )
             zoomScale = ( rotation > 0 ) ? 1.05 : 0.95;
         }
 
-        if( GetEnableZoomNoCenter() )
+        if( IsCursorWarpingEnabled() )
         {
-            VECTOR2D anchor = m_view->ToWorld( VECTOR2D( aEvent.GetX(), aEvent.GetY() ) );
-            m_view->SetScale( m_view->GetScale() * zoomScale, anchor );
+            CenterOnCursor();
+            m_view->SetScale( m_view->GetScale() * zoomScale );
         }
         else
         {
-            const VECTOR2I& screenSize = m_view->GetGAL()->GetScreenPixelSize();
-            m_view->SetCenter( GetCursorPosition() );
-            m_view->SetScale( m_view->GetScale() * zoomScale );
-            m_parentPanel->WarpPointer( screenSize.x / 2, screenSize.y / 2 );
+            VECTOR2D anchor = m_view->ToWorld( VECTOR2D( aEvent.GetX(), aEvent.GetY() ) );
+            m_view->SetScale( m_view->GetScale() * zoomScale, anchor );
         }
     }
 
@@ -318,28 +316,30 @@ void WX_VIEW_CONTROLS::onScroll( wxScrollWinEvent& aEvent )
 
 void WX_VIEW_CONTROLS::SetGrabMouse( bool aEnabled )
 {
-    VIEW_CONTROLS::SetGrabMouse( aEnabled );
-
-    if( aEnabled )
+    if( aEnabled && !m_grabMouse )
         m_parentPanel->CaptureMouse();
-    else
+    else if( !aEnabled && m_grabMouse )
         m_parentPanel->ReleaseMouse();
+
+    VIEW_CONTROLS::SetGrabMouse( aEnabled );
 }
 
 
-VECTOR2D WX_VIEW_CONTROLS::GetMousePosition() const
+VECTOR2I WX_VIEW_CONTROLS::GetMousePosition() const
 {
     wxPoint msp = wxGetMousePosition();
     wxPoint winp = m_parentPanel->GetScreenPosition();
 
-    return VECTOR2D( msp.x - winp.x, msp.y - winp.y );
+    return VECTOR2I( msp.x - winp.x, msp.y - winp.y );
 }
 
 
 VECTOR2D WX_VIEW_CONTROLS::GetCursorPosition() const
 {
     if( m_forceCursorPosition )
+    {
         return m_forcedPosition;
+    }
     else
     {
         VECTOR2D mousePosition = GetMousePosition();
@@ -348,6 +348,48 @@ VECTOR2D WX_VIEW_CONTROLS::GetCursorPosition() const
             return m_view->GetGAL()->GetGridPoint( m_view->ToWorld( mousePosition ) );
         else
             return m_view->ToWorld( mousePosition );
+    }
+}
+
+
+void WX_VIEW_CONTROLS::WarpCursor( const VECTOR2D& aPosition, bool aWorldCoordinates,
+                                    bool aWarpView ) const
+{
+    if( aWorldCoordinates )
+    {
+        const VECTOR2I& screenSize = m_view->GetGAL()->GetScreenPixelSize();
+        BOX2I screen( VECTOR2I( 0, 0 ), screenSize );
+        VECTOR2D screenPos = m_view->ToScreen( aPosition );
+
+        if( !screen.Contains( screenPos ) )
+        {
+            if( aWarpView )
+            {
+                m_view->SetCenter( aPosition );
+                m_parentPanel->WarpPointer( screenSize.x / 2, screenSize.y / 2 );
+            }
+        }
+        else
+        {
+            m_parentPanel->WarpPointer( screenPos.x, screenPos.y );
+        }
+    }
+    else
+    {
+        m_parentPanel->WarpPointer( aPosition.x, aPosition.y );
+    }
+}
+
+
+void WX_VIEW_CONTROLS::CenterOnCursor() const
+{
+    const VECTOR2I& screenSize = m_view->GetGAL()->GetScreenPixelSize();
+    VECTOR2I screenCenter( screenSize / 2 );
+
+    if( GetMousePosition() != screenCenter )
+    {
+        m_view->SetCenter( GetCursorPosition() );
+        m_parentPanel->WarpPointer( KiROUND( screenSize.x / 2 ), KiROUND( screenSize.y / 2 ) );
     }
 }
 

@@ -113,6 +113,9 @@ bool EDIT_TOOL::invokeInlineRouter()
     TRACK* track = uniqueSelected<TRACK>();
     VIA* via = uniqueSelected<VIA>();
 
+    if( isUndoInhibited() )
+        return false;
+
     if( track || via )
     {
         ROUTER_TOOL* theRouter = static_cast<ROUTER_TOOL*>( m_toolMgr->FindTool( "pcbnew.InteractiveRouter" ) );
@@ -131,6 +134,10 @@ bool EDIT_TOOL::invokeInlineRouter()
 
 int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
 {
+    KIGFX::VIEW_CONTROLS* controls = getViewControls();
+    PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
+
+    VECTOR2I originalCursorPos = controls->GetCursorPosition();
     const SELECTION& selection = m_selectionTool->GetSelection();
 
     // Shall the selection be cleared at the end?
@@ -150,11 +157,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
     // By default, modified items need to update their geometry
     m_updateFlag = KIGFX::VIEW_ITEM::GEOMETRY;
 
-    KIGFX::VIEW_CONTROLS* controls = getViewControls();
-    PCB_BASE_EDIT_FRAME* editFrame = getEditFrame<PCB_BASE_EDIT_FRAME>();
     controls->ShowCursor( true );
-    //controls->SetSnapping( true );
-    controls->ForceCursorPosition( false );
 
     // cumulative translation
     wxPoint totalMovement( 0, 0 );
@@ -180,14 +183,14 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
         else if( evt->IsAction( &COMMON_ACTIONS::editActivate )
                 || evt->IsMotion() || evt->IsDrag( BUT_LEFT ) )
         {
-            if( m_dragging )
+            BOARD_ITEM* item = selection.Item<BOARD_ITEM>( 0 );
+
+            if( m_dragging && evt->Category() == TC_MOUSE )
             {
-                m_cursor = grid.BestSnapAnchor( evt->Position(), selection.Item<BOARD_ITEM>( 0 ) );
-                getViewControls()->ForceCursorPosition( true, m_cursor );
+                m_cursor = grid.BestSnapAnchor( evt->Position(), item );
+                controls->ForceCursorPosition( true, m_cursor );
 
-                wxPoint movement = wxPoint( m_cursor.x, m_cursor.y ) -
-                                   selection.Item<BOARD_ITEM>( 0 )->GetPosition();
-
+                wxPoint movement = wxPoint( m_cursor.x, m_cursor.y ) - item->GetPosition();
                 totalMovement += movement;
 
                 // Drag items to the current cursor position
@@ -196,7 +199,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
 
                 updateRatsnest( true );
             }
-            else    // Prepare to start dragging
+            else if( !m_dragging )    // Prepare to start dragging
             {
                 if( !invokeInlineRouter() )
                 {
@@ -220,18 +223,20 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
                         editFrame->SaveCopyInUndoList( selection.items, UR_CHANGED );
                     }
 
-                    m_cursor = getViewControls()->GetCursorPosition();
+                    m_cursor = controls->GetCursorPosition();
 
                     if( selection.Size() == 1 )
                     {
                         // Set the current cursor position to the first dragged item origin, so the
                         // movement vector could be computed later
-                        m_cursor = grid.BestDragOrigin( m_cursor, selection.Item<BOARD_ITEM>( 0 ) );
+                        m_cursor = grid.BestDragOrigin( originalCursorPos, item );
                         grid.SetAuxAxes( true, m_cursor );
                     }
 
-                    getViewControls()->ForceCursorPosition( true, m_cursor );
-                    VECTOR2I o = VECTOR2I( selection.Item<BOARD_ITEM>( 0 )->GetPosition() );
+                    controls->ForceCursorPosition( true, m_cursor );
+                    controls->WarpCursor( m_cursor, true );
+
+                    VECTOR2I o = VECTOR2I( item->GetPosition() );
                     m_offset.x = o.x - m_cursor.x;
                     m_offset.y = o.y - m_cursor.y;
 
@@ -333,9 +338,7 @@ int EDIT_TOOL::Main( const TOOL_EVENT& aEvent )
     ratsnest->Recalculate();
 
     controls->ShowCursor( false );
-    //controls->SetSnapping( false );
     controls->SetAutoPan( false );
-    controls->ForceCursorPosition( false );
 
     return 0;
 }
@@ -376,6 +379,7 @@ int EDIT_TOOL::Properties( const TOOL_EVENT& aEvent )
         // Display properties dialog
         BOARD_ITEM* item = selection.Item<BOARD_ITEM>( 0 );
 
+        // Store the head of the undo list to compare if anything has changed
         std::vector<PICKED_ITEMS_LIST*>& undoList = editFrame->GetScreen()->m_UndoList.m_CommandsList;
 
         // Some of properties dialogs alter pointers, so we should deselect them
@@ -749,7 +753,7 @@ int EDIT_TOOL::Duplicate( const TOOL_EVENT& aEvent )
             // so zones are not duplicated
             if( item->Type() != PCB_ZONE_AREA_T )
 #endif
-                new_item = editFrame->GetBoard()->DuplicateAndAddItem( item, increment );
+            new_item = editFrame->GetBoard()->DuplicateAndAddItem( item, increment );
         }
 
         if( new_item )
@@ -1027,7 +1031,7 @@ bool EDIT_TOOL::hoverSelection( const SELECTION& aSelection, bool aSanitize )
     if( aSanitize )
         m_selectionTool->SanitizeSelection();
 
-    if( aSelection.Empty() )
+    if( aSelection.Empty() )        // TODO is it necessary?
         m_toolMgr->RunAction( COMMON_ACTIONS::selectionClear, true );
 
     return !aSelection.Empty();
