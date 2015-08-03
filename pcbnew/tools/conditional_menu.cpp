@@ -49,6 +49,7 @@ void CONDITIONAL_MENU::AddSeparator( const SELECTION_CONDITION& aCondition, int 
 CONTEXT_MENU* CONDITIONAL_MENU::Generate( SELECTION& aSelection )
 {
     CONTEXT_MENU* m_menu = new CONTEXT_MENU;
+    m_menu->SetTool( m_tool );
 
     for( std::list<ENTRY>::iterator it = m_entries.begin(); it != m_entries.end(); ++it )
     {
@@ -64,6 +65,7 @@ CONTEXT_MENU* CONDITIONAL_MENU::Generate( SELECTION& aSelection )
                 break;
 
             case ENTRY::MENU:
+                it->Menu()->UpdateAll();
                 m_menu->Add( it->Menu(), it->Label(), it->Expand() );
                 break;
 

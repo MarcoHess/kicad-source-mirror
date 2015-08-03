@@ -254,8 +254,7 @@ public:
     {
         if( aIndex < 0 )
             aIndex += PointCount();
-
-        if( aIndex >= PointCount() )
+        else if( aIndex >= PointCount() )
             aIndex -= PointCount();
 
         return m_points[aIndex];
@@ -554,6 +553,9 @@ public:
 
     /// @copydoc SHAPE::Format()
     const std::string Format() const;
+
+    /// @copydoc SHAPE::Parse()
+    bool Parse( std::stringstream& aStream );
 
     bool operator!=( const SHAPE_LINE_CHAIN& aRhs ) const
     {
