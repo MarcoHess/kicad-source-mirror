@@ -607,18 +607,8 @@ public:
      */
     void Show3D_Frame( wxCommandEvent& event );
 
-    /**
-     * Virtual function UseGalCanvas
-     * Enables/disables GAL canvas.
-     * @param aEnable determines if GAL should be active or not.
-     */
+    ///> @copydoc EDA_DRAW_FRAME::UseGalCanvas()
     void UseGalCanvas( bool aEnable );
-
-    /**
-     * Function SwitchCanvas
-     * switches currently used canvas (default / Cairo / OpenGL).
-     */
-    void SwitchCanvas( wxCommandEvent& aEvent );
 
     bool GeneralControl( wxDC* aDC, const wxPoint& aPosition, int aHotKey = 0 );
 
@@ -996,11 +986,14 @@ public:
      *                          converted to a STEP model.
      * @param a3D_Subdir = sub directory where 3D shapes files are copied.  This is only used
      *                     when aExport3DFiles == true
+     * @param aXRef = X value of PCB (0,0) reference point
+     * @param aYRef = Y value of PCB (0,0) reference point
      * @return true if Ok.
      */
     bool ExportVRML_File( const wxString & aFullFileName, double aMMtoWRMLunit,
                           bool aExport3DFiles, bool aUseRelativePaths,
-                          bool aUsePlainPCB, const wxString & a3D_Subdir );
+                          bool aUsePlainPCB, const wxString & a3D_Subdir,
+                          double aXRef, double aYRef );
 
     /**
      * Function ExportToIDF3
@@ -1124,7 +1117,7 @@ public:
      */
     void Change_Side_Module( MODULE* Module, wxDC* DC );
 
-    void InstallExchangeModuleFrame( MODULE* ExchangeModuleModule );
+    int InstallExchangeModuleFrame( MODULE* ExchangeModuleModule );
 
     /**
      * Function Exchange_Module

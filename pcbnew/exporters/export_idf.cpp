@@ -398,9 +398,9 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
             throw( std::runtime_error( aIDFBoard.GetError() ) );
 
         double rotz = aModule->GetOrientation()/10.0;
-        double locx = modfile->m_MatPosition.x;
-        double locy = modfile->m_MatPosition.y;
-        double locz = modfile->m_MatPosition.z;
+        double locx = modfile->m_MatPosition.x * 25.4;  // part offsets are in inches
+        double locy = modfile->m_MatPosition.y * 25.4;
+        double locz = modfile->m_MatPosition.z * 25.4;
         double lrot = modfile->m_MatRotation.z;
 
         bool top = ( aModule->GetLayer() == B_Cu ) ? false : true;
@@ -532,7 +532,8 @@ static void idf_export_module( BOARD* aPcb, MODULE* aModule,
  * generates IDFv3 compliant board (*.emn) and library (*.emp)
  * files representing the user's PCB design.
  */
-bool Export_IDF3( BOARD* aPcb, const wxString& aFullFileName, bool aUseThou )
+bool Export_IDF3( BOARD* aPcb, const wxString& aFullFileName, bool aUseThou,
+                  double aXRef, double aYRef )
 {
     IDF3_BOARD idfBoard( IDF3::CAD_ELEC );
 
@@ -567,10 +568,8 @@ bool Export_IDF3( BOARD* aPcb, const wxString& aFullFileName, bool aUseThou )
 
     try
     {
-        // set up the global offsets
-        EDA_RECT bbox = aPcb->ComputeBoundingBox( true );
-        idfBoard.SetUserOffset( -bbox.Centre().x * scale,
-                            bbox.Centre().y * scale );
+        // set up the board reference point
+        idfBoard.SetUserOffset( -aXRef, aYRef );
 
         // Export the board outline
         idf_export_outline( aPcb, idfBoard );

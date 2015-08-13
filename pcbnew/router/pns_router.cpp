@@ -199,11 +199,15 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
 
     wxPoint wx_c = aPad->ShapePos();
     wxSize  wx_sz = aPad->GetSize();
+    wxPoint offset = aPad->GetOffset();
 
     VECTOR2I c( wx_c.x, wx_c.y );
     VECTOR2I sz( wx_sz.x, wx_sz.y );
 
-    solid->SetPos( c );
+    RotatePoint( &offset, aPad->GetOrientation() );
+
+    solid->SetPos( VECTOR2I( c.x - offset.x, c.y - offset.y ) );
+    solid->SetOffset ( VECTOR2I ( offset.x, offset.y ) );
 
     double orient = aPad->GetOrientation() / 10.0;
 
@@ -220,7 +224,6 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
 
             switch( aPad->GetShape() )
             {
-
             case PAD_OVAL:
                 if( sz.x == sz.y )
                     solid->SetShape( new SHAPE_CIRCLE( c, sz.x / 2 ) );
@@ -247,8 +250,8 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
             {
                 wxPoint coords[4];
                 aPad->BuildPadPolygon( coords, wxSize( 0, 0 ), aPad->GetOrientation() );
-
                 SHAPE_CONVEX* shape = new SHAPE_CONVEX();
+
                 for( int ii = 0; ii < 4; ii++ )
                 {
                     shape->Append( wx_c + coords[ii] );
@@ -284,9 +287,10 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
                     int w = aPad->BuildSegmentFromOvalShape( start, end, 0.0, wxSize( 0, 0 ) );
 
                     if( start.y == 0 )
-                        corner = wxPoint( start.x, -(w / 2) );
+                        corner = wxPoint( start.x, -( w / 2 ) );
                     else
                         corner = wxPoint( w / 2, start.y );
+
                     RotatePoint( &start, aPad->GetOrientation() );
                     RotatePoint( &corner, aPad->GetOrientation() );
                     shape->Append( wx_c + corner );
@@ -301,7 +305,8 @@ PNS_ITEM* PNS_ROUTER::syncPad( D_PAD* aPad )
                     if( end.y == 0 )
                         corner = wxPoint( end.x, w / 2 );
                     else
-                        corner = wxPoint( -(w / 2), end.y );
+                        corner = wxPoint( -( w / 2 ), end.y );
+
                     RotatePoint( &end, aPad->GetOrientation() );
                     RotatePoint( &corner, aPad->GetOrientation() );
                     shape->Append( wx_c + corner );
