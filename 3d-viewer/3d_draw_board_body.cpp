@@ -63,6 +63,15 @@
 #include <CImage.h>
 #include <reporter.h>
 
+// An option for all operations on polygons:
+// when useFastModeForPolygons = true, calculations can be *a lot* faster.
+// but created polygons can be not stricty simple (can share edges)
+// Although stricty simple are better for glu tesselation functions, I do not see
+// any issue when allowing not stricty simple polygons.
+// But I see *very* long calculations when setting useFastMode to false.
+// So, be careful if changing thie option
+bool useFastModeForPolygons = true;
+
 /* returns the Z orientation parameter 1.0 or -1.0 for aLayer
  * Z orientation is 1.0 for all layers but "back" layers:
  *  B_Cu , B_Adhes, B_Paste ), B_SilkS
@@ -132,14 +141,14 @@ void EDA_3D_CANVAS::buildBoardThroughHolesPolygonList( SHAPE_POLY_SET& allBoardH
             int inflate = copper_thickness;
 
             // If not plated, no copper.
-            if( pad->GetAttribute () == PAD_HOLE_NOT_PLATED )
+            if( pad->GetAttribute () == PAD_ATTRIB_HOLE_NOT_PLATED )
                 inflate = 0;
 
             pad->BuildPadDrillShapePolygon( allBoardHoles, inflate, segcount );
         }
     }
 
-    allBoardHoles.Simplify();
+    allBoardHoles.Simplify( useFastModeForPolygons );
 }
 
 
@@ -314,11 +323,11 @@ void EDA_3D_CANVAS::buildBoard3DView( GLuint aBoardList, GLuint aBodyOnlyList,
         if( currLayerHoles.OutlineCount() )
         {
             currLayerHoles.Append(allLayerHoles);
-            currLayerHoles.Simplify();
-            bufferPolys.BooleanSubtract( currLayerHoles );
+            currLayerHoles.Simplify( useFastModeForPolygons );
+            bufferPolys.BooleanSubtract( currLayerHoles, useFastModeForPolygons );
         }
         else
-            bufferPolys.BooleanSubtract( allLayerHoles );
+            bufferPolys.BooleanSubtract( allLayerHoles, useFastModeForPolygons );
 
         int thickness = GetPrm3DVisu().GetLayerObjectThicknessBIU( layer );
         int zpos = GetPrm3DVisu().GetLayerZcoordBIU( layer );
@@ -378,7 +387,7 @@ void EDA_3D_CANVAS::buildBoard3DView( GLuint aBoardList, GLuint aBodyOnlyList,
         for( const MODULE* module = pcb->m_Modules;  module;  module = module->Next() )
         {
             for( D_PAD* pad = module->Pads(); pad; pad = pad->Next() )
-                if( pad->GetAttribute () != PAD_HOLE_NOT_PLATED )
+                if( pad->GetAttribute () != PAD_ATTRIB_HOLE_NOT_PLATED )
                     draw3DPadHole( pad );
         }
     }
@@ -414,7 +423,7 @@ void EDA_3D_CANVAS::buildBoard3DView( GLuint aBoardList, GLuint aBodyOnlyList,
     zpos += (copper_thickness + epsilon) / 2.0f;
     board_thickness -= copper_thickness + epsilon;
 
-    bufferPcbOutlines.BooleanSubtract( allLayerHoles );
+    bufferPcbOutlines.BooleanSubtract( allLayerHoles, useFastModeForPolygons );
 
     if( !bufferPcbOutlines.IsEmpty() )
     {
@@ -574,15 +583,15 @@ void EDA_3D_CANVAS::buildTechLayers3DView( REPORTER* aErrorMessages, REPORTER* a
             bufferPolys = bufferPcbOutlines;
 
             cuts.Append(allLayerHoles);
-            cuts.Simplify();
+            cuts.Simplify( useFastModeForPolygons );
 
-            bufferPolys.BooleanSubtract( cuts );
+            bufferPolys.BooleanSubtract( cuts, useFastModeForPolygons );
         }
         // Remove holes from Solder paste layers and silkscreen
         else if( layer == B_Paste || layer == F_Paste
                  || layer == B_SilkS || layer == F_SilkS  )
         {
-            bufferPolys.BooleanSubtract( allLayerHoles );
+            bufferPolys.BooleanSubtract( allLayerHoles, useFastModeForPolygons );
         }
 
         int thickness = 0;

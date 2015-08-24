@@ -66,6 +66,8 @@ public:
     virtual int operator()( const PNS_ITEM* aA, const PNS_ITEM* aB );
     virtual void OverrideClearance (bool aEnable, int aNetA = 0, int aNetB = 0, int aClearance = 0);
 
+    void UseDpGap( bool aUseDpGap ) { m_useDpGap = aUseDpGap; }
+
 private:
     struct CLEARANCE_ENT {
         int coupledNet;
@@ -80,6 +82,7 @@ private:
     bool m_overrideEnabled;
     int m_overrideNetA, m_overrideNetB;
     int m_overrideClearance;
+    bool m_useDpGap;
 };
 
 /**
@@ -128,7 +131,7 @@ struct PNS_COLLISION_FILTER {
  * - lightweight cloning/branching (for recursive optimization and shove
  * springback)
  **/
-class PNS_NODE : public PNS_OBJECT
+class PNS_NODE
 {
 public:
     typedef boost::optional<PNS_OBSTACLE>   OPT_OBSTACLE;
@@ -184,7 +187,9 @@ public:
     int QueryColliding( const PNS_ITEM* aItem,
                         OBSTACLES&      aObstacles,
                         int             aKindMask = PNS_ITEM::ANY,
-                        int             aLimitCount = -1 );
+                        int             aLimitCount = -1,
+                        bool            aDifferentNetsOnly = true,
+                        int             aForceClearance = -1 );
 
     /**
      * Function NearestObstacle()
@@ -195,8 +200,9 @@ public:
      * @param aKindMask mask of obstacle types to take into account
      * @return the obstacle, if found, otherwise empty.
      */
-    OPT_OBSTACLE NearestObstacle( const PNS_LINE*   aItem,
-                                  int               aKindMask = PNS_ITEM::ANY );
+    OPT_OBSTACLE NearestObstacle( const PNS_LINE*   		 aItem,
+                                  int                		 aKindMask = PNS_ITEM::ANY,
+                                  const std::set<PNS_ITEM*>* aRestrictedSet = NULL );
 
     /**
      * Function CheckColliding()
