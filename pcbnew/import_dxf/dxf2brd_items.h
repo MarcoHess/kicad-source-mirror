@@ -52,13 +52,14 @@ private:
     int m_brdLayer;         // The board layer to place imported dfx items
     int m_version;          // the dxf version, not used here
     std::string m_codePage; // The code page, not used here
+    bool m_fillPolygons;    // Convert closed polygons as filled areas when true
 
 public:
     DXF2BRD_CONVERTER();
     ~DXF2BRD_CONVERTER();
 
     /**
-     * Set the coordinate offset between the importede dxf items
+     * Set the coordinate offset between the imported dxf items
      * and Pcbnew.
      * because dxf files have the Y axis from bottom to top;
      * aOffsetX = 0, and aOffsetY = - vertical page size to import a full page
@@ -76,6 +77,12 @@ public:
      * the layer should be a techicanl layer, not a copper layer
      */
     void SetBrdLayer( int aBrdLayer ) { m_brdLayer = aBrdLayer; }
+
+    /**
+     * Set flag to convert closed polygons to filled areas instead of a set
+     * of lines.
+     */
+    void SetFillPolygons( int aFillPolygons ) { m_fillPolygons = aFillPolygons; };
 
     /**
      * Implementation of the method used for communicate
