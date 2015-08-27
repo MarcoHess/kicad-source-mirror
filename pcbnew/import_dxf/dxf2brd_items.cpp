@@ -55,6 +55,7 @@ DXF2BRD_CONVERTER::DXF2BRD_CONVERTER() : DRW_Interface()
     m_version   = 0;
     m_defaultThickness = 0.1;
     m_brdLayer = Dwgs_User;
+    m_fillPolygons = false; // Default import DXF polygons as lines
 }
 
 
@@ -128,44 +129,81 @@ void DXF2BRD_CONVERTER::addPolyline(const DRW_Polyline& aData )
     // So we have to convert a polyline to a set of segments.
     // Obviously, the z coordinate is ignored
 
-    wxPoint polyline_startpoint;
-    wxPoint segment_startpoint;
-
-    for( unsigned ii = 0; ii < aData.vertlist.size(); ii++ )
+    // Closed polyline can be imported as a filled area when this is
+    // selected in the dxf import dialog box
+    if( ( aData.flags & 1 ) && m_fillPolygons )
     {
-        DRW_Vertex* vertex = aData.vertlist[ii];
+        DRAWSEGMENT* poly = new DRAWSEGMENT( NULL );
 
-        if( ii == 0 )
+        wxPoint startpoint;
+        wxPoint polypoint;
+
+        std::vector <wxPoint> pts;
+        for( unsigned ii = 0; ii < aData.vertlist.size(); ii++ )
         {
-            segment_startpoint.x = mapX( vertex->basePoint.x );
-            segment_startpoint.y = mapY( vertex->basePoint.y );
-            polyline_startpoint  = segment_startpoint;
-            continue;
+            DRW_Vertex* vertex = aData.vertlist[ii];
+            polypoint = wxPoint( mapX( vertex->basePoint.x ),
+                                 mapY( vertex->basePoint.y ) );
+            // Remember start point
+            if( ii == 0 )
+            {
+                startpoint = polypoint;
+            }
+            pts.push_back( polypoint );
         }
 
-        DRAWSEGMENT*    segm = new DRAWSEGMENT( NULL );
+        // Close polygon back to the start point
+        pts.push_back( startpoint );
 
-        segm->SetLayer( ToLAYER_ID( m_brdLayer ) );
-        segm->SetStart( segment_startpoint );
-        wxPoint segment_endpoint( mapX( vertex->basePoint.x ), mapY( vertex->basePoint.y ) );
-        segm->SetEnd( segment_endpoint );
-        segm->SetWidth( mapDim( aData.thickness == 0 ? m_defaultThickness
-                                : aData.thickness ) );
-        m_newItemsList.push_back( segm );
-        segment_startpoint = segment_endpoint;
+        poly->SetType( PCB_ZONE_T );
+        poly->SetShape( S_POLYGON );
+        poly->SetLayer( ToLAYER_ID( m_brdLayer ) );
+        poly->SetWidth( mapDim( 0.0001 ) );
+        poly->SetPolyPoints( pts );
+
+        m_newItemsList.push_back( poly );
     }
-
-    // Polyline flags bit 0 indicates closed (1) or open (0) polyline
-    if( aData.flags & 1 )
+    else
     {
-        DRAWSEGMENT*    closing_segm = new DRAWSEGMENT( NULL );
+        wxPoint polyline_startpoint;
+        wxPoint segment_startpoint;
 
-        closing_segm->SetLayer( ToLAYER_ID( m_brdLayer ) );
-        closing_segm->SetStart( segment_startpoint );
-        closing_segm->SetEnd( polyline_startpoint );
-        closing_segm->SetWidth( mapDim( aData.thickness == 0 ? m_defaultThickness
-                                : aData.thickness ) );
-        m_newItemsList.push_back( closing_segm );
+        for( unsigned ii = 0; ii < aData.vertlist.size(); ii++ )
+        {
+            DRW_Vertex* vertex = aData.vertlist[ii];
+
+            if( ii == 0 )
+            {
+                segment_startpoint.x = mapX( vertex->basePoint.x );
+                segment_startpoint.y = mapY( vertex->basePoint.y );
+                polyline_startpoint  = segment_startpoint;
+                continue;
+            }
+
+            DRAWSEGMENT*    segm = new DRAWSEGMENT( NULL );
+
+            segm->SetLayer( ToLAYER_ID( m_brdLayer ) );
+            segm->SetStart( segment_startpoint );
+            wxPoint segment_endpoint( mapX( vertex->basePoint.x ), mapY( vertex->basePoint.y ) );
+            segm->SetEnd( segment_endpoint );
+            segm->SetWidth( mapDim( aData.thickness == 0 ? m_defaultThickness
+                                    : aData.thickness ) );
+            m_newItemsList.push_back( segm );
+            segment_startpoint = segment_endpoint;
+        }
+
+        // Polyline flags bit 0 indicates closed (1) or open (0) polyline
+        if( aData.flags & 1 )
+        {
+            DRAWSEGMENT*    closing_segm = new DRAWSEGMENT( NULL );
+
+            closing_segm->SetLayer( ToLAYER_ID( m_brdLayer ) );
+            closing_segm->SetStart( segment_startpoint );
+            closing_segm->SetEnd( polyline_startpoint );
+            closing_segm->SetWidth( mapDim( aData.thickness == 0 ? m_defaultThickness
+                                    : aData.thickness ) );
+            m_newItemsList.push_back( closing_segm );
+        }
     }
 }
 
