@@ -25,6 +25,8 @@ class PCB_LAYER_BOX_SELECTOR;
 #include <wx/button.h>
 #include <wx/sizer.h>
 #include <wx/radiobox.h>
+#include <wx/checkbox.h>
+#include <wx/statbox.h>
 #include <wx/bmpcbox.h>
 #include <wx/statline.h>
 #include <wx/dialog.h>
@@ -44,6 +46,7 @@ class DIALOG_DXF_IMPORT_BASE : public DIALOG_SHIM
 		wxTextCtrl* m_textCtrlFileName;
 		wxButton* m_buttonBrowse;
 		wxRadioBox* m_rbOffsetOption;
+		wxCheckBox* m_checkBoxFillPolygons;
 		wxStaticText* m_staticTextBrdlayer;
 		PCB_LAYER_BOX_SELECTOR* m_SelLayerBox;
 		wxStaticLine* m_staticline8;

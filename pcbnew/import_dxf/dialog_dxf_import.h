@@ -50,6 +50,7 @@ private:
     static wxString      m_dxfFilename;
     static int           m_offsetSelection;
     static LAYER_NUM     m_layer;
+    static bool          m_fillPolygons;
 
     // Virtual event handlers
     void OnCancelClick( wxCommandEvent& event ) { event.Skip(); }

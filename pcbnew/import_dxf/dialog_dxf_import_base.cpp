@@ -36,11 +36,26 @@ DIALOG_DXF_IMPORT_BASE::DIALOG_DXF_IMPORT_BASE( wxWindow* parent, wxWindowID id,
 	
 	bSizerMain->Add( bSizerFile, 0, wxEXPAND|wxBOTTOM, 5 );
 	
+	wxGridSizer* gSizerOptions;
+	gSizerOptions = new wxGridSizer( 0, 2, 0, 0 );
+	
 	wxString m_rbOffsetOptionChoices[] = { _("Right top corner"), _("Middle"), _("Centered on page"), _("Right bottom corner") };
 	int m_rbOffsetOptionNChoices = sizeof( m_rbOffsetOptionChoices ) / sizeof( wxString );
 	m_rbOffsetOption = new wxRadioBox( this, wxID_ANY, _("Origin of DXF Coordinates"), wxDefaultPosition, wxDefaultSize, m_rbOffsetOptionNChoices, m_rbOffsetOptionChoices, 1, wxRA_SPECIFY_COLS );
 	m_rbOffsetOption->SetSelection( 3 );
-	bSizerMain->Add( m_rbOffsetOption, 0, wxALL|wxEXPAND, 5 );
+	gSizerOptions->Add( m_rbOffsetOption, 0, wxALL|wxEXPAND, 5 );
+	
+	wxStaticBoxSizer* sbSizerCheckboxes;
+	sbSizerCheckboxes = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Import Options") ), wxVERTICAL );
+	
+	m_checkBoxFillPolygons = new wxCheckBox( this, wxID_ANY, _("Fill Polygons"), wxDefaultPosition, wxDefaultSize, 0 );
+	sbSizerCheckboxes->Add( m_checkBoxFillPolygons, 0, wxALL, 5 );
+	
+	
+	gSizerOptions->Add( sbSizerCheckboxes, 1, wxALL|wxEXPAND, 5 );
+	
+	
+	bSizerMain->Add( gSizerOptions, 1, wxALL|wxEXPAND, 5 );
 	
 	m_staticTextBrdlayer = new wxStaticText( this, wxID_ANY, _("Board layer for import:"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticTextBrdlayer->Wrap( -1 );

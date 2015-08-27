@@ -43,13 +43,14 @@
 #define DXF_IMPORT_LAYER_OPTION_KEY wxT("DxfImportBrdLayer")
 #define DXF_IMPORT_COORD_ORIGIN_KEY wxT("DxfImportCoordOrigin")
 #define DXF_IMPORT_LAST_FILE_KEY wxT("DxfImportLastFile")
+#define DXF_IMPORT_FILL_POLYGONS_KEY wxT("DxfImportFillPolygons")
 
 // Static members of DIALOG_DXF_IMPORT, to remember
 // the user's choices during the session
 wxString DIALOG_DXF_IMPORT::m_dxfFilename;
 int DIALOG_DXF_IMPORT::m_offsetSelection = 4;
 LAYER_NUM DIALOG_DXF_IMPORT::m_layer = Dwgs_User;
-
+bool DIALOG_DXF_IMPORT::m_fillPolygons = false;
 
 DIALOG_DXF_IMPORT::DIALOG_DXF_IMPORT( PCB_BASE_FRAME* aParent )
     : DIALOG_DXF_IMPORT_BASE( aParent )
@@ -62,14 +63,18 @@ DIALOG_DXF_IMPORT::DIALOG_DXF_IMPORT( PCB_BASE_FRAME* aParent )
         m_layer = m_config->Read( DXF_IMPORT_LAYER_OPTION_KEY, (long)Dwgs_User );
         m_offsetSelection = m_config->Read( DXF_IMPORT_COORD_ORIGIN_KEY, 3 );
         m_dxfFilename =  m_config->Read( DXF_IMPORT_LAST_FILE_KEY, wxEmptyString );
+        m_config->Read( DXF_IMPORT_FILL_POLYGONS_KEY, &m_fillPolygons, false );
     }
 
     m_textCtrlFileName->SetValue( m_dxfFilename );
     m_rbOffsetOption->SetSelection( m_offsetSelection );
-
+    m_checkBoxFillPolygons->SetValue( m_fillPolygons );
     // Configure the layers list selector
-    m_SelLayerBox->SetLayersHotkeys( false );           // Do not display hotkeys
-    m_SelLayerBox->SetLayerSet( LSET::AllCuMask() );    // Do not use copper layers
+    m_SelLayerBox->SetLayersHotkeys( false );               // Do not display hotkeys
+
+    //m_SelLayerBox->SetLayerSet( LSET::AllCuMask() );      // Do not use copper layers
+    m_SelLayerBox->SetLayerSet( LSET::InternalCuMask() );   // Allow Top Bottom Cu
+
     m_SelLayerBox->SetBoardFrame( m_parent );
     m_SelLayerBox->Resync();
 
@@ -89,12 +94,14 @@ DIALOG_DXF_IMPORT::~DIALOG_DXF_IMPORT()
 {
     m_offsetSelection = m_rbOffsetOption->GetSelection();
     m_layer = m_SelLayerBox->GetLayerSelection();
+    m_fillPolygons = m_checkBoxFillPolygons->IsChecked();
 
     if( m_config )
     {
         m_config->Write( DXF_IMPORT_LAYER_OPTION_KEY, (long)m_layer );
         m_config->Write( DXF_IMPORT_COORD_ORIGIN_KEY, m_offsetSelection );
         m_config->Write( DXF_IMPORT_LAST_FILE_KEY, m_dxfFilename );
+        m_config->Write( DXF_IMPORT_FILL_POLYGONS_KEY, m_fillPolygons );
     }
 }
 
@@ -136,6 +143,8 @@ void DIALOG_DXF_IMPORT::OnOKClick( wxCommandEvent& event )
     if( m_dxfFilename.IsEmpty() )
         return;
 
+    m_fillPolygons = m_checkBoxFillPolygons->IsChecked();
+
     double offsetX = 0;
     double offsetY = 0;
 
@@ -161,6 +170,7 @@ void DIALOG_DXF_IMPORT::OnOKClick( wxCommandEvent& event )
 
     // Set coordinates offset for import (offset is given in mm)
     m_dxfImporter.SetOffset( offsetX, offsetY );
+    m_dxfImporter.SetFillPolygons( m_fillPolygons );
     m_layer = m_SelLayerBox->GetLayerSelection();
     m_dxfImporter.SetBrdLayer( m_layer );
 
@@ -190,6 +200,12 @@ bool InvokeDXFDialogBoardImport( PCB_BASE_FRAME* aCaller )
 
             ITEM_PICKER itemWrapper( item, UR_NEW );
             picklist.PushItem( itemWrapper );
+//<<<<<<< Updated upstream
+//=======
+//
+//            //if( aCaller->IsGalCanvasActive() )
+//                view->Add( item );
+//>>>>>>> Stashed changes
         }
 
         aCaller->SaveCopyInUndoList( picklist, UR_NEW, wxPoint( 0, 0 ) );
@@ -224,30 +240,48 @@ bool InvokeDXFDialogModuleImport( PCB_BASE_FRAME* aCaller, MODULE* aModule )
             // so we need to convert imported items to appropriate classes.
             switch( item->Type() )
             {
-            case PCB_LINE_T:
-            {
-                converted = new EDGE_MODULE( aModule );
-                *static_cast<DRAWSEGMENT*>( converted ) = *static_cast<DRAWSEGMENT*>( item );
-                aModule->Add( converted );
-                static_cast<EDGE_MODULE*>( converted )->SetLocalCoord();
-                delete item;
-                break;
-            }
 
-            case PCB_TEXT_T:
-            {
-                converted = new TEXTE_MODULE( aModule );
-                *static_cast<TEXTE_PCB*>( converted ) = *static_cast<TEXTE_PCB*>( item );
-                aModule->Add( converted );
-                static_cast<TEXTE_MODULE*>( converted )->SetLocalCoord();
-                delete item;
-                break;
-            }
+                case PCB_ZONE_T:
+                        /* FALL THROUGH ???? */
+                case PCB_LINE_T:
+                {
+                    converted = new EDGE_MODULE( aModule );
+                    *static_cast<DRAWSEGMENT*>( converted ) = *static_cast<DRAWSEGMENT*>( item );
+                    aModule->Add( converted );
+                    static_cast<EDGE_MODULE*>( converted )->SetLocalCoord();
+                    delete item;
+                    break;
+                }
 
-            default:
-                wxLogDebug( wxT( "type %d currently not handled" ), item->Type() );
-                break;
+                case PCB_TEXT_T:
+                {
+                    converted = new TEXTE_MODULE( aModule );
+                    *static_cast<TEXTE_PCB*>( converted ) = *static_cast<TEXTE_PCB*>( item );
+                    aModule->Add( converted );
+                    static_cast<TEXTE_MODULE*>( converted )->SetLocalCoord();
+                    delete item;
+                    break;
+                }
+
+                default:
+                {
+                    wxString msg;
+                    msg.Printf( wxT( "Module import needs work: BOARD_ITEM type (%d) not handled" ),
+                                item->Type() );
+                    wxFAIL_MSG( msg );
+
+                    wxLogDebug( wxT( "type %d currently not handled" ), item->Type() );
+
+                    break;
+                }
             }
+//<<<<<<< Updated upstream
+//=======
+//
+//            //if( aCaller->IsGalCanvasActive() && converted )
+//            if( converted )
+//                view->Add( converted );
+//>>>>>>> Stashed changes
         }
     }
 
