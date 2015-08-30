@@ -43,6 +43,7 @@
 #include <trigo.h>
 #include <macros.h>
 #include <class_board.h>
+#include <class_zone.h>
 #include <class_drawsegment.h>
 #include <class_pcb_text.h>
 #include <convert_from_iu.h>
@@ -133,6 +134,37 @@ void DXF2BRD_CONVERTER::addPolyline(const DRW_Polyline& aData )
     // selected in the dxf import dialog box
     if( ( aData.flags & 1 ) && m_fillPolygons )
     {
+#define USE_ZONE
+#ifdef USE_ZONE
+        // use a "netcode = 0" type ZONE:
+        ZONE_CONTAINER* zone = new ZONE_CONTAINER( GetBoard() );
+
+        zone->SetTimeStamp( GetNewTimeStamp() );
+        zone->SetLayer( ToLAYER_ID( m_brdLayer )  );
+        zone->SetNetCode( NETINFO_LIST::UNCONNECTED );
+
+        CPolyLine::HATCH_STYLE outline_hatch = CPolyLine::DIAGONAL_EDGE;
+
+        for( unsigned ii = 0; ii < aData.vertlist.size(); ii++ )
+        {
+            DRW_Vertex* vertex = aData.vertlist[ii];
+
+            if( ii == 0 )
+                zone->Outline()->Start( ToLAYER_ID( m_brdLayer ),
+                                        mapX( vertex->basePoint.x ),
+                                        mapY( vertex->basePoint.y ),
+                                        outline_hatch );
+            else
+                zone->AppendCorner( wxPoint( mapX( vertex->basePoint.x ),
+                                             mapY( vertex->basePoint.y ) ) );
+        }
+
+        zone->Outline()->CloseLastContour();
+
+        m_newItemsList.push_back( zone );
+
+#else
+
         DRAWSEGMENT* poly = new DRAWSEGMENT( NULL );
 
         wxPoint startpoint;
@@ -162,6 +194,7 @@ void DXF2BRD_CONVERTER::addPolyline(const DRW_Polyline& aData )
         poly->SetPolyPoints( pts );
 
         m_newItemsList.push_back( poly );
+#endif
     }
     else
     {
