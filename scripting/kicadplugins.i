@@ -38,6 +38,17 @@
   * available in the system
   *
   */
+
+/*
+ * Remark:
+ * Avoid using the print function in python wizards
+ *
+ * Be aware print messages create IO exceptions, because the wizard
+ * is run from Pcbnew. And if pcbnew is not run from a console, there is
+ * no io channel to read the output of print function.
+ * When the io buffer is full, a IO exception is thrown.
+ */
+
 %pythoncode
 {
 
@@ -62,7 +73,7 @@ def ReloadPlugins():
         now_mtime = os.path.getmtime(filename)
 
         if mtime!=now_mtime:
-            print filename, " is modified, reloading"
+            # /* print filename, " is modified, reloading" */
             KICAD_PLUGINS[k]["modification_time"]=now_mtime
             ReloadPlugin(k)
 
@@ -163,6 +174,7 @@ class FootprintWizardPlugin(KiCadPlugin):
         self.name = "Undefined Footprint Wizard plugin"
         self.description = ""
         self.image = ""
+        self.buildmessages = ""
 
     def GetName(self):
         return self.name
@@ -214,7 +226,6 @@ class FootprintWizardPlugin(KiCadPlugin):
         for key in keys:
             val = self.TryConvertToFloat(values[n])
             self.parameters[name][key] = val
-            print "[%s][%s]<="%(name,key),val
             n+=1
 
 
@@ -232,12 +243,15 @@ class FootprintWizardPlugin(KiCadPlugin):
         self.parameter_errors = errs
 
 
-    def GetModule(self):
+    def GetFootprint( self ):
         self.BuildFootprint()
         return self.module
 
     def BuildFootprint(self):
         return
+
+    def GetBuildMessages( self ):
+        return self.buildmessages
 
     def Show(self):
         print "Footprint Wizard Name:        ",self.GetName()

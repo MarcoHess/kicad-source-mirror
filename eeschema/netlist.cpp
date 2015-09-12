@@ -173,7 +173,7 @@ NETLIST_OBJECT_LIST* SCH_EDIT_FRAME::BuildNetListBase()
         return ret.release();
     }
 
-    wxString msg = wxString::Format( _( "Net count = %zu" ), ret->size() );
+    wxString msg = wxString::Format( _( "Net count = %d" ), int( ret->size() ) );
 
     SetStatusText( msg );
 
@@ -426,7 +426,7 @@ static bool evalLabelsPriority( const NETLIST_OBJECT* aLabel1,
     // and for a given path length, by alphabetic order
 
     if( aLabel1->m_Type == NET_PINLABEL || aLabel1->m_Type == NET_GLOBLABEL )
-        return aLabel1->m_Label.Cmp( aLabel2->m_Label );
+        return aLabel1->m_Label.Cmp( aLabel2->m_Label ) < 0;
 
     // not global: names are prefixed by their sheetpath
     // use name defined in higher hierarchical sheet

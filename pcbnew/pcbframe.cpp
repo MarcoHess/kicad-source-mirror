@@ -661,6 +661,18 @@ void PCB_EDIT_FRAME::Show3D_Frame( wxCommandEvent& event )
 
 void PCB_EDIT_FRAME::UseGalCanvas( bool aEnable )
 {
+    if( aEnable )
+    {
+        BOARD* board = GetBoard();
+
+        if( board )
+            board->GetRatsnest()->ProcessBoard();
+    }
+    else
+    {
+        Compile_Ratsnest( NULL, true );
+    }
+
     PCB_BASE_EDIT_FRAME::UseGalCanvas( aEnable );
 
     enableGALSpecificMenus();
